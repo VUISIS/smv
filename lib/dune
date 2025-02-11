@@ -1,0 +1,9 @@
+(menhir
+  (modules smv_parser))
+
+(ocamllex smv_lexer)
+
+(library
+ (public_name smv)
+ (name smv)
+ (libraries str))
