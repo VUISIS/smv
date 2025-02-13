@@ -1,5 +1,7 @@
 type array_elem_type = Array_Int | Array_Bool | Array_Range of int * int
-                                                               
+
+type word_sign = Word_Signed | Word_Unsigned
+
 type decl_type =
   | Bool_Decl of string
   | Int_Decl of string
