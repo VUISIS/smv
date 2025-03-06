@@ -32,52 +32,52 @@
 %left COLON_COLON
 %left NOT
 
-%start<unit> smv_module
+%start<Smv.module_type> smv_module
 %%
 
-complex_identifier: SYMBOL {}
-  | complex_identifier DOT SYMBOL {}
-  | complex_identifier LBRACKET simple_expr RBRACKET {}
-  | SELF {}
+complex_identifier: SYMBOL { Smv.IdSym $1 }
+  | complex_identifier DOT SYMBOL { Smv.IdDot ($1, $3) }
+  | complex_identifier LBRACKET simple_expr RBRACKET { Smv.IdRef ($1, $3) }
+  | SELF { Smv.IdSelf}
 ;
 
-variable_identifier: complex_identifier {};
+variable_identifier: complex_identifier { $1};
 
-define_identifier: complex_identifier {};
+define_identifier: complex_identifier { $1};
 
-boolean_constant: TRUE {}
-  | FALSE {}
+boolean_constant: TRUE { Smv.ConstBool true }
+  | FALSE { Smv.ConstBool false }
 ;
 
-integer_constant: INT {};
+integer_constant: INT { Smv.ConstInt $1};
 
-symbolic_constant: complex_identifier {};
+symbolic_constant: complex_identifier { Smv.ConstSym $1};
 
-word_constant: WORD_CONST {};
+word_constant: WORD_CONST { Smv.ConstWord $1 };
 
-range_constant: INT DOTDOT INT {};
+range_constant: INT DOTDOT INT { Smv.ConstRange ($1, $3) };
 
-constant: boolean_constant {}
-  | integer_constant {}
-  | symbolic_constant {}
-  | word_constant {}
-  | range_constant {}
+constant: boolean_constant {$1}
+  | integer_constant {$1}
+  | symbolic_constant {$1}
+  | word_constant {$1}
+  | range_constant {$1}
 ;
 
-basic_expr: constant {}
-  | variable_identifier {}
-  | define_identifier {}
-  | LPAREN basic_expr RPAREN {}
-  | ABS basic_expr {}
-  | MAX LPAREN basic_expr COMMA basic_expr RPAREN {}
-  | MIN LPAREN basic_expr COMMA basic_expr RPAREN {}
-  | NOT basic_expr {}
-  | basic_expr AND basic_expr {}
-  | basic_expr OR basic_expr {}
-  | basic_expr XOR basic_expr {}
-  | basic_expr XNOR basic_expr {}
-  | basic_expr IMPLIES basic_expr {}
-  | basic_expr EQUIV basic_expr {}
+basic_expr: constant {ExprConst $1}
+  | variable_identifier {ExprVar $1}
+  | define_identifier {ExprDef $1}
+  | LPAREN basic_expr RPAREN {$2}
+  | ABS basic_expr {ExprAbs $2}
+  | MAX LPAREN basic_expr COMMA basic_expr RPAREN {ExprMax ($3, $5) }
+  | MIN LPAREN basic_expr COMMA basic_expr RPAREN {ExprMin ($3, $5) }
+  | NOT basic_expr {ExprNot $2}
+  | basic_expr AND basic_expr {ExprAnd ($1, $3) }
+  | basic_expr OR basic_expr {ExprOr ($1, $3)}
+  | basic_expr XOR basic_expr {ExprXor ($1, $3)}
+  | basic_expr XNOR basic_expr {ExprXnor ($1, $3)}
+  | basic_expr IMPLIES basic_expr {ExprImplies ($1, $3)}
+  | basic_expr EQUIV basic_expr {ExprEquiv ($1, $3)}
   | basic_expr EQUAL basic_expr {}
   | basic_expr NOT_EQUAL basic_expr {}
   | basic_expr LESS_THAN basic_expr {}
@@ -324,7 +324,7 @@ module_element: var_declaration {}
   | invar_constraint {}
   | fairness_constraint {}
   | ctl_specification {}
-| rtctl_specification {}
+  | rtctl_specification {}
   | invar_specification {}
   | ltl_specification {}
   | compute_specification {}
