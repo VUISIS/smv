@@ -15,9 +15,9 @@ rule token = parse
   | '-''-'[^'\n']*['\n'] { Lexing.new_line lexbuf; token lexbuf }
   | ['\n'] { Lexing.new_line lexbuf; token lexbuf }
   | [' ' '\t'] { token lexbuf }
-  | "0" ['u' 's']? ['b' 'B' 'o' 'O' 'd' 'D' 'h' 'H'] ['0'-'9']+ "_" ['0'-'9' 'a'-'f' 'A'-'F' '_']+ as lxm { WORD_CONST (parse_word_constant lxm) }
+  | "0" ['u' 's']? ['b' 'B' 'o' 'O' 'd' 'D' 'h' 'H'] ['0'-'9']+ "_"
+    ['0'-'9' 'a'-'f' 'A'-'F' '_']+ as lxm { WORD_CONST (parse_word_constant lxm) }
   | '-'? ['0'-'9']+ as lxm { INT(int_of_string lxm) }
-  | '"'[^'"']*'"' as lxm { STRING(String.sub lxm 1 ((String.length lxm) - 2)) }
   | "MODULE" { MODULE }
   | "ASSIGN" { ASSIGN }
   | "VAR" { VAR }
@@ -26,19 +26,44 @@ rule token = parse
   | "DEFINE" { DEFINE }
   | "CONSTANTS" { CONSTANTS }
   | "TRANS" { TRANS }
-  | "INIT" { INIT_STMT }
+  | "INIT" { INIT }
   | "INVAR" { INVAR }
   | "LTLSPEC" { LTLSPEC }
   | "INVARSPEC" { INVARSPEC }
   | "ISA" { ISA }
   | "CTLSPEC" { CTLSPEC }
   | "COMPUTE" { COMPUTE }
-  | "PSLSPEC" { PSLSPEC }
+  | "FAIRNESS" { FAIRNESS }
+  | "JUSTICE" { JUSTICE }
+  | "COMPASSION" { COMPASSION }
   | "SPEC" { SPEC }
   | "NAME" { NAME }
   | "TRUE" { TRUE }
   | "FALSE" { FALSE }
-  | "integer" { INTEGER }
+  | "EBF" { EBF }
+  | "ABF" { ABF }
+  | "EBG" { EBG }
+  | "ABG" { ABG }
+  | "BU" { BU }
+  | "EG" { EG }
+  | "EX" { EX }
+  | "EF" { EF }
+  | "AG" { AG }
+  | "AX" { AX }
+  | "AF" { AF }
+  | "E" { E }
+  | "U" { U }
+  | "A" { A }
+  | "X" { X }
+  | "G" { G }
+  | "F" { F }
+  | "V" { V }
+  | "Y" { Y }
+  | "Z" { Z }
+  | "H" { H }
+  | "O" { O }
+  | "S" { S }
+  | "T" { T }
   | "boolean" { BOOLEAN }
   | "word" { WORD }
   | "array" { ARRAY }
@@ -50,7 +75,6 @@ rule token = parse
   | "next" { NEXT }
   | "case" { CASE }
   | "esac" { ESAC }
-  | "endcase" { ENDCASE }
   | "mod" { MOD }
   | "self" { SELF }
   | "xor" { XOR }
@@ -66,19 +90,10 @@ rule token = parse
   | "in" { IN }
   | "count" { COUNT }
   | "process" { PROCESS }
-  | "abort" { ABORT }
-  | "forall" { FORALL }
-  | "always" { ALWAYS }
-  | "never" { NEVER }
-  | "eventually!" { EVENTUALLY }
-  | "next!" { NEXT_BANG }
-  | "until" { UNTIL }
-  | "until!" { UNTIL_BANG }
-  | "before" { BEFORE }
-  | "before!" { BEFORE_BANG }
   
   | ['A'-'Z' 'a'-'z' '_' ]['A'-'Z' 'a'-'z' '0'-'9' '_' '$' '#' '-']* as lxm { SYMBOL(lxm) }
   | ":=" { COLON_EQUAL }
+  | "::" { COLON_COLON }
   | ':' { COLON }
   | ';' { SEMI }
   | ',' { COMMA }
@@ -96,6 +111,8 @@ rule token = parse
   | "]" { RBRACKET }
   | "!=" { NOT_EQUAL }
   | '=' { EQUAL }
+  | ">>" { RIGHT_SHIFT }
+  | "<<" { LEFT_SHIFT }
   | ">=" { GREATER_EQUAL }
   | '>' { GREATER_THAN }
   | "<=" { LESS_EQUAL }
@@ -105,5 +122,5 @@ rule token = parse
   | '|' { OR }
   | ".." { DOTDOT }
   | '?' { QUESTION }
-  | eof { EOF }
+  | '.' { DOT }
   

@@ -1,134 +1,351 @@
 %token <int> INT
 %token <int> WORD_CONST
-%token <string> STRING
 %token <string> SYMBOL
 %token MODULE ASSIGN VAR IVAR LTLSPEC INVARSPEC INIT ESAC CASE NEXT ARRAY OF DEFINE
 %token COLON_EQUAL COLON SEMI COMMA
 %token MOD XOR XNOR PLUS MINUS TIMES DIV LPAREN RPAREN LBRACE RBRACE
 %token LBRACKET RBRACKET
 %token NOT_EQUAL EQUAL GREATER_EQUAL GREATER_THAN LESS_EQUAL
-%token LESS_THAN NOT AND OR EOF
-%token TRUE FALSE INTEGER BOOLEAN DOTDOT SELF
+%token LESS_THAN NOT AND OR
+%token TRUE FALSE BOOLEAN DOTDOT SELF
 %token ABS MAX MIN WORD1 BOOL TOINT SIGNED UNSIGNED EXTEND RESIZE UNION
 %token QUESTION IN COUNT WORD PROCESS FROZENVAR CONSTANTS TRANS INVAR
 %token INIT_STMT ISA CTLSPEC SPEC NAME IMPLIES
-%token EQUIV COMPUTE PSLSPEC ENDCASE ABORT FORALL ALWAYS NEVER EVENTUALLY
-%token NEXT_BANG UNTIL UNTIL_BANG BEFORE BEFORE_BANG
+%token EQUIV COMPUTE
+%token DOT COLON_COLON
+%token RIGHT_SHIFT LEFT_SHIFT
+%token EG EX EF AG AX AF E U A X G F V Y Z H O S T
+%token EBF ABF EBG ABG BU
+%token FAIRNESS JUSTICE COMPASSION
 
-%left OR XOR
+%right IMPLIES
+%left EQUIV
+%left QUESTION
+%left OR XOR XNOR
 %left AND
-%left NOT
 %left EQUAL NOT_EQUAL LESS_THAN LESS_EQUAL GREATER_THAN GREATER_EQUAL
+%left IN
+%left UNION
+%left LEFT_SHIFT RIGHT_SHIFT
 %left PLUS MINUS
 %left TIMES DIV MOD
+%left COLON_COLON
+%left NOT
 
-%start smv_module
-%type <Ast.program_type> smv_module
+%start<unit> smv_module
 %%
 
-smv_module: MODULE SYMBOL vars_section define_section ASSIGN assigns ltls EOF
-    { Ast.Program ($2, $3, $4, $6, $7) };
-
-vars_section: VAR vars { $2 }
-  | { [] }
+complex_identifier: SYMBOL {}
+  | complex_identifier DOT SYMBOL {}
+  | complex_identifier LBRACKET simple_expr RBRACKET {}
+  | SELF {}
 ;
 
-define_section: DEFINE definitions { $2 }
-  | { [] }
+variable_identifier: complex_identifier {};
+
+define_identifier: complex_identifier {};
+
+boolean_constant: TRUE {}
+  | FALSE {}
 ;
 
-definition: lvalue COLON_EQUAL expr SEMI { Ast.Definition ($1, $3) };
+integer_constant: INT {};
 
-definitions: definition definitions { $1 :: $2 }
-  | { [] }
+symbolic_constant: complex_identifier {};
+
+word_constant: WORD_CONST {};
+
+range_constant: INT DOTDOT INT {};
+
+constant: boolean_constant {}
+  | integer_constant {}
+  | symbolic_constant {}
+  | word_constant {}
+  | range_constant {}
 ;
 
-vars: var_decl vars { $1 :: $2 }
-  | { [] }
+basic_expr: constant {}
+  | variable_identifier {}
+  | define_identifier {}
+  | LPAREN basic_expr RPAREN {}
+  | ABS basic_expr {}
+  | MAX LPAREN basic_expr COMMA basic_expr RPAREN {}
+  | MIN LPAREN basic_expr COMMA basic_expr RPAREN {}
+  | NOT basic_expr {}
+  | basic_expr AND basic_expr {}
+  | basic_expr OR basic_expr {}
+  | basic_expr XOR basic_expr {}
+  | basic_expr XNOR basic_expr {}
+  | basic_expr IMPLIES basic_expr {}
+  | basic_expr EQUIV basic_expr {}
+  | basic_expr EQUAL basic_expr {}
+  | basic_expr NOT_EQUAL basic_expr {}
+  | basic_expr LESS_THAN basic_expr {}
+  | basic_expr GREATER_THAN basic_expr {}
+  | basic_expr LESS_EQUAL basic_expr {}
+  | basic_expr GREATER_EQUAL basic_expr {}
+  | MINUS basic_expr {}
+  | basic_expr PLUS basic_expr {}
+  | basic_expr MINUS basic_expr {}
+  | basic_expr TIMES basic_expr {}
+  | basic_expr DIV basic_expr {}
+  | basic_expr MOD basic_expr {}
+  | basic_expr RIGHT_SHIFT basic_expr {}
+  | basic_expr LEFT_SHIFT basic_expr {}
+  | basic_expr LBRACKET basic_expr RBRACKET {}
+  | basic_expr LBRACKET INT COLON INT RBRACKET {}
+  | basic_expr COLON_COLON basic_expr {}
+  | WORD1 LPAREN basic_expr RPAREN {}
+  | BOOL LPAREN basic_expr RPAREN {}
+  | TOINT LPAREN basic_expr RPAREN {}
+  | SIGNED LPAREN basic_expr RPAREN {}
+  | UNSIGNED LPAREN basic_expr RPAREN {}
+  | EXTEND LPAREN basic_expr COMMA basic_expr RPAREN {}
+  | RESIZE LPAREN basic_expr COMMA basic_expr RPAREN {}
+  | basic_expr UNION basic_expr {}
+  | LBRACE set_body_expr RBRACE {}
+  | basic_expr IN basic_expr {}
+  | basic_expr QUESTION basic_expr COLON basic_expr {}
+  | COUNT LPAREN basic_expr_list RPAREN {}
+  | case_expr {}
+  | NEXT LPAREN basic_expr RPAREN {}
 ;
 
-enum_list: SYMBOL COMMA enum_list { $1 :: $3 }
-    | SYMBOL { [$1] }
-  | { [] }
-;
-
-deftype: INTEGER { Array_Int } | BOOLEAN { Array_Bool } |
-  INT DOTDOT INT { Array_Range ($1,$3) }
-
-var_decl: SYMBOL COLON BOOLEAN SEMI { Ast.Bool_Decl $1 }
-  | SYMBOL COLON INTEGER SEMI { Ast.Int_Decl $1 }
-  | SYMBOL COLON INT DOTDOT INT SEMI { Ast.Int_Range_Decl ($1, $3, $5) }
-  | SYMBOL COLON LBRACE enum_list RBRACE SEMI { Ast.Enum_Decl ($1, $4) }
-  | SYMBOL COLON ARRAY INT DOTDOT INT OF deftype SEMI
-    {Ast.Array_Decl ($1, $4, $6, $8) }
-;
-
-expr: TRUE { Ast.Expr_Bool true }
-  | FALSE { Ast.Expr_Bool false }
-  | INT { Ast.Expr_Int $1 }
-  | LBRACKET expr_list RBRACKET { Ast.Expr_Array $2 }
-  | expr LBRACKET expr RBRACKET { Ast.Expr_Array_Ref ($1,$3) }
-  | SYMBOL LPAREN expr_list RPAREN { Ast.Expr_Func ($1, $3) }
-  | SYMBOL { Ast.Expr_Var $1 }
-  | LPAREN expr RPAREN { $2 }
-  | MINUS expr { Ast.Expr_Neg $2 }
-  | expr PLUS expr { Ast.Expr_Add ($1 ,$3) }
-  | expr MINUS expr { Ast.Expr_Sub ($1, $3) }
-  | expr TIMES expr { Ast.Expr_Mul ($1, $3) }
-  | expr DIV expr { Ast.Expr_Div ($1, $3) }
-  | expr MOD expr { Ast.Expr_Mod ($1, $3) }
-  | NOT expr { Ast.Expr_Not $2 }
-  | expr AND expr { Ast.Expr_And ($1, $3) }
-  | expr OR expr { Ast.Expr_Or ($1, $3) }
-  | expr XOR expr { Ast.Expr_Xor ($1, $3) }
-  | expr EQUAL expr { Ast.Expr_Eq ($1, $3) }
-  | expr NOT_EQUAL expr { Ast.Expr_Ne ($1, $3) }
-  | expr LESS_THAN expr { Ast.Expr_Lt ($1, $3) }
-  | expr LESS_EQUAL expr { Ast.Expr_Le ($1, $3) }
-  | expr GREATER_THAN expr { Ast.Expr_Gt ($1, $3) }
-  | expr GREATER_EQUAL expr { Ast.Expr_Ge ($1, $3) }
-;
-
-expr_list: expr COMMA expr_list { $1 :: $3 }
-      | expr { [ $1 ] }
-  | { [] }
-;
-
-case: expr COLON LBRACE expr_list RBRACE SEMI { Ast.Case ($1, Ast.Choose $4) } 
-      | expr COLON expr SEMI { Ast.Case ($1, Ast.Single $3) }
-;
-
-cases: case cases { $1 :: $2 }
-  | { [] }
-;
-
-stmt_val: CASE cases ESAC { Ast.Val_Case $2 }
-  | expr { Ast.Val_Expr $1 }
-;
-
-lvalue: SYMBOL LBRACKET expr RBRACKET { Ast.LVal_ARef ($1,$3) }
-  | SYMBOL { Ast.LVal_Var $1 }
-;
-
-next : NEXT LPAREN lvalue RPAREN COLON_EQUAL stmt_val SEMI { Ast.Next ($3, $6) };
-init: INIT LPAREN lvalue RPAREN COLON_EQUAL stmt_val SEMI { Ast.Init ($3, $6) }
-
-assign: next { $1 }
-  | init { $1 }
-;
-
-assigns: assign assigns { $1 :: $2 }
-  | { [] }
-;
-
- opt_semi: SEMI {}
+basic_expr_list: basic_expr COMMA basic_expr_list {}
+  | basic_expr {}
   | {}
 ;
 
-ltl: LTLSPEC SYMBOL expr opt_semi { Ast.Ltl ($2,$3) }
-  | INVARSPEC expr opt_semi { Ast.Invarspec $2 }
+set_body_expr: basic_expr COMMA set_body_expr {}
+  | basic_expr {}
+  | {}
 ;
-					 
-  ltls: ltl ltls { $1 :: $2 }
-    | { [] }
+
+simple_type_specifier: BOOLEAN {}
+  | WORD LBRACKET INT RBRACKET {}
+  | UNSIGNED WORD LBRACKET INT RBRACKET {}
+  | SIGNED WORD LBRACKET INT RBRACKET {}
+  | LBRACE enumeration_type_body RBRACE {}
+  | INT DOTDOT INT {}
+  | ARRAY INT DOTDOT INT OF simple_type_specifier {}
+;
+
+enumeration_type_body: enumeration_type_value COMMA enumeration_type_body {}
+  | enumeration_type_value {}
+  | {}
+;
+
+enumeration_type_value: SYMBOL {}
+  | INT {}
+;
+
+module_type_specifier: SYMBOL opt_parameter_list {}
+  | PROCESS SYMBOL opt_parameter_list {}
+;
+
+type_specifier: simple_type_specifier {}
+  | module_type_specifier {}
+;
+
+parameter_list: simple_expr COMMA parameter_list {}
+  | simple_expr {}
+  | {}
+;
+
+opt_parameter_list: LPAREN parameter_list RPAREN {}
+  | {}
+;
+
+simple_expr: basic_expr {}
+;
+
+next_expr: basic_expr {}
+;
+
+case_body: basic_expr COLON basic_expr SEMI case_body {}
+;
+
+case_expr: CASE case_body ESAC {}
+;
+
+var_list: complex_identifier COLON type_specifier var_list {}
+  | {}
+;
+
+
+simple_var_list: complex_identifier COLON simple_type_specifier SEMI simple_var_list {}
+  | {}
+;
+
+var_declaration: VAR var_list {}
+;
+
+ivar_declaration: IVAR simple_var_list {}
+;
+
+frozenvar_declaration: FROZENVAR simple_var_list {}
+;
+
+define_body: complex_identifier COLON_EQUAL next_expr SEMI define_body {}
+  | {}
+;
+
+define_declaration: DEFINE define_body {}
+;
+
+constants_body: complex_identifier COMMA constants_body {}
+  | complex_identifier {}
+  | {}
+;
+
+constants_declaration: CONSTANTS constants_body {}
+;
+
+assign: complex_identifier COLON_EQUAL simple_expr {}
+  | INIT LPAREN complex_identifier RPAREN COLON_EQUAL simple_expr {}
+  | NEXT LPAREN complex_identifier RPAREN COLON_EQUAL simple_expr {}
+;
+
+assign_list: assign assign_list {}
+  | {}
+;
+
+assign_constraint: ASSIGN assign_list {}
+
+opt_semi: SEMI {}
+  | {}
+;
+
+trans_constraint: TRANS next_expr opt_semi {}
+;
+
+init_constraint: INIT_STMT simple_expr opt_semi {}
+;
+
+invar_constraint: INVAR simple_expr opt_semi {}
+;
+
+isa_declaration: ISA SYMBOL {}
+;
+
+ctl_specification: CTLSPEC ctl_expr SEMI {}
+  | SPEC ctl_expr opt_semi {}
+  | CTLSPEC NAME SYMBOL COLON_EQUAL ctl_expr opt_semi {}
+  | SPEC NAME SYMBOL COLON_EQUAL ctl_expr opt_semi {}
+;
+
+ctl_expr: simple_expr {}
+  | LPAREN ctl_expr RPAREN {}
+  | NOT ctl_expr {}
+  | ctl_expr AND ctl_expr {}
+  | ctl_expr OR ctl_expr {}
+  | ctl_expr XOR ctl_expr {}
+  | ctl_expr XNOR ctl_expr {}
+  | ctl_expr IMPLIES ctl_expr {}
+  | ctl_expr EQUIV ctl_expr {}
+  | EG ctl_expr {}
+  | EX ctl_expr {}
+  | EF ctl_expr {}
+  | AG ctl_expr {}
+  | AX ctl_expr {}
+  | AF ctl_expr {}
+  | E LBRACKET ctl_expr U ctl_expr RBRACKET {}
+  | A LBRACKET ctl_expr U ctl_expr RBRACKET {}
+;
+
+invar_specification: INVARSPEC next_expr SEMI {}
+  | INVARSPEC NAME SYMBOL COLON_EQUAL next_expr opt_semi {}
+;
+
+ltl_specification: LTLSPEC ltl_expr opt_semi {}
+  | LTLSPEC NAME SYMBOL COLON_EQUAL ltl_expr opt_semi {}
+;
+
+ltl_expr: next_expr {}
+  | LPAREN ltl_expr RPAREN {}
+  | NOT ltl_expr {}
+  | ltl_expr AND ltl_expr {}
+  | ltl_expr OR ltl_expr {}
+  | ltl_expr XOR ltl_expr {}
+  | ltl_expr IMPLIES ltl_expr {}
+  | ltl_expr EQUIV ltl_expr {}
+  | X ltl_expr {}
+  | G ltl_expr {}
+  | F ltl_expr {}
+  | ltl_expr U ltl_expr {}
+  | ltl_expr V ltl_expr {}
+  | Y ltl_expr {}
+  | Z ltl_expr {}
+  | H ltl_expr {}
+  | O ltl_expr {}
+  | ltl_expr S ltl_expr {}
+  | ltl_expr T ltl_expr {}
+;
+
+rtctl_specification: CTLSPEC rtctl_expr opt_semi {}
+  | SPEC rtctl_expr opt_semi {}
+  | CTLSPEC NAME SYMBOL COLON_EQUAL rtctl_expr opt_semi {}
+  | SPEC NAME SYMBOL COLON_EQUAL rtctl_expr opt_semi {}
+;
+
+range: INT DOTDOT INT {}
+;
+
+rtctl_expr: ctl_expr {}
+  | EBF range rtctl_expr {}
+  | ABF range rtctl_expr {}
+  | EBG range rtctl_expr {}
+  | ABG range rtctl_expr {}
+  | A LBRACKET rtctl_expr BU range rtctl_expr RBRACKET {}
+  | E LBRACKET rtctl_expr BU range rtctl_expr RBRACKET {}
+;
+
+compute_specification: COMPUTE compute_expr opt_semi {}
+  | COMPUTE NAME SYMBOL COLON_EQUAL compute_expr opt_semi {}
+;
+
+compute_expr: MIN LBRACKET rtctl_expr COMMA rtctl_expr RBRACKET {}
+  | MAX LBRACKET rtctl_expr COMMA rtctl_expr RBRACKET {}
+;
+
+fairness_constraint: FAIRNESS simple_expr opt_semi {}
+  | JUSTICE simple_expr opt_semi {}
+  | COMPASSION LPAREN simple_expr COMMA simple_expr RPAREN opt_semi {}
+;
+
+module_element: var_declaration {}
+  | ivar_declaration {}
+  | frozenvar_declaration {}
+  | define_declaration {}
+  | constants_declaration {}
+  | assign_constraint {}
+  | trans_constraint {}
+  | init_constraint {}
+  | invar_constraint {}
+  | fairness_constraint {}
+  | ctl_specification {}
+| rtctl_specification {}
+  | invar_specification {}
+  | ltl_specification {}
+  | compute_specification {}
+  | isa_declaration {}
+;
+
+module_parameters: SYMBOL {}
+  | module_parameters COMMA SYMBOL {}
+;
+
+opt_module_parameters: LPAREN module_parameters RPAREN {}
+  | {}
+;
+
+module_body: module_element {}
+  | module_body module_element {}
+;
+
+opt_module_body: module_body {}
+  | {}
+;
+
+smv_module: MODULE SYMBOL opt_module_parameters opt_module_body {}
 ;
