@@ -2,7 +2,8 @@
 type module_type_type = ModType of string * (basic_expr_type list)
                       | ModProcessType of string * (basic_expr_type list)
 and simple_type_type = TypeBoolean | TypeWord of int | TypeUnsignedWord of int |
-                       TypeEnum of enum_val_type | TypeRange of int * int |
+                       TypeSignedWord of int |
+                       TypeEnum of enum_val_type list | TypeRange of int * int |
                        TypeArray of int * int * simple_type_type
 and type_type = TypeSimple of simple_type_type | TypeModule of module_type_type
 and enum_val_type = EnumInt of int | EnumSym of string
@@ -66,7 +67,7 @@ and assign_type = AssignVar of complex_id_type * basic_expr_type
                      | AssignNext of complex_id_type * basic_expr_type
 and fairness_type = FairnessFairness of basic_expr_type
                   | FairnessJustice of basic_expr_type
-                  | FairnessCompassion of basic_expr_type
+                  | FairnessCompassion of basic_expr_type * basic_expr_type
 and ctl_expr_type = CtlExprExpr of basic_expr_type
                   | CtlExprNot of ctl_expr_type
                   | CtlExprAnd of ctl_expr_type * ctl_expr_type
@@ -91,6 +92,7 @@ and rtctl_expr_type = RtctlCtlExpr of ctl_expr_type
                     | RtctlEBF of int * int * rtctl_expr_type
                     | RtctlABF of int * int * rtctl_expr_type
                     | RtctlEBG of int * int * rtctl_expr_type
+                    | RtctlABG of int * int * rtctl_expr_type
                     | RtctlA of rtctl_expr_type * int * int * rtctl_expr_type
                     | RtctlE of rtctl_expr_type * int * int * rtctl_expr_type
 and rtctl_spec_type = RtctlCtlSpec of rtctl_expr_type
@@ -107,33 +109,34 @@ and ltl_expr_type = LtlExprExpr of basic_expr_type
                   | LtlExprXnor of ltl_expr_type * ltl_expr_type
                   | LtlExprImplies of ltl_expr_type * ltl_expr_type
                   | LtlExprEquiv of ltl_expr_type * ltl_expr_type
-                  | LtlNext of ltl_expr_type
-                  | LtlGlobal of ltl_expr_type
-                  | LtlFinally of ltl_expr_type
-                  | LtlUntil of ltl_expr_type * ltl_expr_type
-                  | LtlReleases of ltl_expr_type * ltl_expr_type
-                  | LtlPrevious of ltl_expr_type
-                  | LtlNotPrevious of ltl_expr_type
-                  | LtlHistorically of ltl_expr_type
-                  | LtlOnce of ltl_expr_type
-                  | LtlSince of ltl_expr_type * ltl_expr_type
-                  | LtlTriggered of ltl_expr_type * ltl_expr_type
+                  | LtlExprNext of ltl_expr_type
+                  | LtlExprGlobal of ltl_expr_type
+                  | LtlExprFinally of ltl_expr_type
+                  | LtlExprUntil of ltl_expr_type * ltl_expr_type
+                  | LtlExprReleases of ltl_expr_type * ltl_expr_type
+                  | LtlExprPrevious of ltl_expr_type
+                  | LtlExprNotPrevious of ltl_expr_type
+                  | LtlExprHistorically of ltl_expr_type
+                  | LtlExprOnce of ltl_expr_type
+                  | LtlExprSince of ltl_expr_type * ltl_expr_type
+                  | LtlExprTriggered of ltl_expr_type * ltl_expr_type
 and compute_expr_type = ComputeMin of rtctl_expr_type * rtctl_expr_type
                       | ComputeMax of rtctl_expr_type * rtctl_expr_type
 and ltl_spec_type = LtlSpec of ltl_expr_type
                   | LtlSpecName of string * ltl_expr_type
 and compute_spec_type = ComputeSpec of compute_expr_type
-                      | CompteSpecName of string * compute_expr_type
+                      | ComputeSpecName of string * compute_expr_type
+                                          
 type mod_elem_type = ModVarDecl of var_decl_type list
                    | ModIVarDecl of ivar_decl_type list
                    | ModFrozenVarDecl of frozenvar_decl_type list
                    | ModDefineDecl of def_decl_type list
                    | ModConstDecl of complex_id_type list
-                   | ModAssignConstraint of assign_type
-                   | ModTransConstraint of basic_expr_type
-                   | ModInitConstraint of basic_expr_type
-                   | ModInvarConstraint of basic_expr_type
-                   | ModFairnessConstraint of fairness_type
+                   | ModAssign of assign_type list
+                   | ModTrans of basic_expr_type
+                   | ModInit of basic_expr_type
+                   | ModInvar of basic_expr_type
+                   | ModFairness of fairness_type
                    | ModCtlSpec of ctl_spec_type
                    | ModRtctlSpec of rtctl_spec_type
                    | ModInvarSpec of invar_spec_type
@@ -141,4 +144,4 @@ type mod_elem_type = ModVarDecl of var_decl_type list
                    | ModComputeSpec of compute_spec_type
                    | ModIsaDecl of string
 
-type module_type = Module of (string list) * (mod_elem_type list)
+type module_type = Module of string * (string list) * (mod_elem_type list)
