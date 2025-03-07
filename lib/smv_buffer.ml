@@ -68,6 +68,12 @@ and add_module_elem buffer = function
      add_invar_spec buffer invar_spec
   | ModLtlSpec ltl_spec ->
      add_ltl_spec buffer ltl_spec
+  | ModComputeSpec compute_spec ->
+     add_compute_spec buffer compute_spec
+  | ModIsaDecl s ->
+     (Buffer.add_string buffer "  ISA ";
+      Buffer.add_string buffer s;
+      Buffer.add_string buffer "\n")
   | _ -> ()
 
 and add_var_decl buffer (VarDecl (id,var_type)) =
@@ -402,6 +408,33 @@ and add_ltl_expr buffer expr =
   | LtlExprTriggered (x, y) ->
      add_ltl_binary_op buffer "T" (ltlexpr_priority expr) x y
 
+and add_compute_spec buffer compute_spec =
+  match compute_spec with
+  | ComputeSpec expr ->
+     (Buffer.add_string buffer "  COMPUTE ";
+      add_compute_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | ComputeSpecName (name, expr) ->
+     (Buffer.add_string buffer "  COMPUTE NAME ";
+      Buffer.add_string buffer name;
+      Buffer.add_string buffer " := ";
+      add_compute_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+
+and add_compute_expr buffer compute_expr =
+  match compute_expr with
+  | ComputeMin (x, y) ->
+     (Buffer.add_string buffer "MIN [";
+      add_rtctl_expr buffer x;
+      Buffer.add_string buffer ", ";
+      add_rtctl_expr buffer y;
+      Buffer.add_char buffer ']')
+  | ComputeMax (x, y) ->
+     (Buffer.add_string buffer "MAX [";
+      add_rtctl_expr buffer x;
+      Buffer.add_string buffer ", ";
+      add_rtctl_expr buffer y;
+      Buffer.add_char buffer ']')
 and add_id buffer id =
   match id with
   | IdSym str -> Buffer.add_string buffer str
