@@ -642,13 +642,6 @@ let to_string add_expr expr =
   add_expr buff expr;
   Buffer.contents buff
 
-let print_test () =
-  let parsed = Smv_io.parse_smv "../c_to_nusmv/cli_untar.smv" in
-  Printf.printf "%s\n" (to_string add_program parsed)
-
-let print_file filename =
-  let parsed = Smv_io.parse_smv "../c_to_nusmv/cli_untar_stripped.smv" in
-  Out_channel.with_open_text filename
-    (fun f ->
-      Printf.fprintf f "%s\n" (to_string add_program parsed))
+let string_of_program prog =
+  to_string add_program prog
   

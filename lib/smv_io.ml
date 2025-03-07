@@ -9,6 +9,8 @@ let parse_smv filename =
            (lexbuf.lex_curr_p.pos_cnum - lexbuf.lex_curr_p.pos_bol);
          failwith "parse error"))
 
-  
-  
+let write_smv filename prog =
+  Out_channel.with_open_text filename
+    (fun file ->
+      Printf.fprintf file "%s\n" (Smv_buffer.string_of_program prog))
   
