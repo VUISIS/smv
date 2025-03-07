@@ -46,6 +46,28 @@ and add_module_elem buffer = function
   | ModAssign assigns ->
      (Buffer.add_string buffer "  ASSIGN\n";
       List.iter (add_assign buffer) assigns)
+  | ModTrans trans ->
+     (Buffer.add_string buffer "  TRANS ";
+      add_basic_expr buffer trans;
+      Buffer.add_string buffer ";\n")
+  | ModInit init ->
+     (Buffer.add_string buffer "  INIT ";
+      add_basic_expr buffer init;
+      Buffer.add_string buffer ";\n")
+  | ModInvar invar ->
+     (Buffer.add_string buffer "  INVAR ";
+      add_basic_expr buffer invar;
+      Buffer.add_string buffer ";\n")
+  | ModFairness fairness ->
+     add_fairness buffer fairness
+  | ModCtlSpec ctl_spec ->
+     add_ctl_spec buffer ctl_spec
+  | ModRtctlSpec rtctl_spec ->
+     add_rtctl_spec buffer rtctl_spec
+  | ModInvarSpec invar_spec ->
+     add_invar_spec buffer invar_spec
+  | ModLtlSpec ltl_spec ->
+     add_ltl_spec buffer ltl_spec
   | _ -> ()
 
 and add_var_decl buffer (VarDecl (id,var_type)) =
@@ -89,6 +111,296 @@ and add_assign buffer assign =
       Buffer.add_string buffer ") :=\n      ";
       add_basic_expr buffer expr;
       Buffer.add_string buffer ";\n")
+
+and add_fairness buffer fairness =
+  match fairness with
+  | FairnessFairness expr ->
+     (Buffer.add_string buffer "  FAIRNESS ";
+      add_basic_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | FairnessJustice expr ->
+     (Buffer.add_string buffer "  JUSTICE ";
+      add_basic_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | FairnessCompassion (x,y) ->
+     (Buffer.add_string buffer "  COMPASSION (";
+      add_basic_expr buffer x;
+      Buffer.add_string buffer ", ";
+      add_basic_expr buffer y;
+      Buffer.add_string buffer ");\n")
+
+and add_ctl_spec buffer ctl_spec =
+  match ctl_spec with
+  | CtlCtlSpec expr ->
+     (Buffer.add_string buffer "  CTLSPEC ";
+      add_ctl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | CtlSpec expr ->
+     (Buffer.add_string buffer "  SPEC ";
+      add_ctl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | CtlCtlSpecName (name,expr) ->
+     (Buffer.add_string buffer "  CTLSPEC NAME ";
+      Buffer.add_string buffer name;
+      Buffer.add_string buffer " := ";
+      add_ctl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | CtlSpecName (name,expr) ->
+     (Buffer.add_string buffer "  SPEC NAME ";
+      Buffer.add_string buffer name;
+      Buffer.add_string buffer " := ";
+      add_ctl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+
+and add_ctl_unary_op buffer op prio expr =
+  let expr_prio = ctlexpr_priority expr in
+  Buffer.add_string buffer op;
+  if expr_prio > prio then
+    (Buffer.add_char buffer '(';
+     add_ctl_expr buffer expr;
+     Buffer.add_char buffer ')')
+  else
+     add_ctl_expr buffer expr;
+
+and add_ctl_binary_op buffer op prio x y =
+  let left_prio = ctlexpr_priority x in
+  let right_prio = ctlexpr_priority y in
+  if left_prio > prio then
+    (Buffer.add_char buffer '(';
+     add_ctl_expr buffer x;
+     Buffer.add_char buffer ')')
+  else
+     add_ctl_expr buffer x;
+  Buffer.add_char buffer ' ';
+  Buffer.add_string buffer op;
+  Buffer.add_char buffer ' ';
+  if right_prio > prio then
+    (Buffer.add_char buffer '(';
+     add_ctl_expr buffer y;
+     Buffer.add_char buffer ')')
+  else
+     add_ctl_expr buffer y  
+
+and add_ctl_expr buffer expr =
+  match expr with
+  | CtlExprExpr expr ->
+     (Buffer.add_char buffer '(';
+      add_basic_expr buffer expr;
+      Buffer.add_char buffer ')')
+  | CtlExprNot not_expr ->
+     add_ctl_unary_op buffer "!" (ctlexpr_priority expr) not_expr
+  | CtlExprAnd (x,y) ->
+     add_ctl_binary_op buffer "&" (ctlexpr_priority expr) x y
+  | CtlExprOr (x,y) ->
+     add_ctl_binary_op buffer "|" (ctlexpr_priority expr) x y
+  | CtlExprXor (x,y) ->
+     add_ctl_binary_op buffer "xor" (ctlexpr_priority expr) x y
+  | CtlExprXnor (x,y) ->
+     add_ctl_binary_op buffer "xnor" (ctlexpr_priority expr) x y
+  | CtlExprImplies (x,y) ->
+     add_ctl_binary_op buffer "->" (ctlexpr_priority expr) x y
+  | CtlExprEquiv (x,y) ->
+     add_ctl_binary_op buffer "<->" (ctlexpr_priority expr) x y
+  | CtlExprExistsGlobal x ->
+     add_ctl_unary_op buffer "EG" (ctlexpr_priority expr) x
+  | CtlExprExistsNext x ->
+     add_ctl_unary_op buffer "EX" (ctlexpr_priority expr) x
+  | CtlExprExistsFinal x ->
+     add_ctl_unary_op buffer "EF" (ctlexpr_priority expr) x
+  | CtlExprForallGlobal x ->
+     add_ctl_unary_op buffer "AG" (ctlexpr_priority expr) x
+  | CtlExprForallNext x ->
+     add_ctl_unary_op buffer "AX" (ctlexpr_priority expr) x
+  | CtlExprForallFinal x ->
+     add_ctl_unary_op buffer "AF" (ctlexpr_priority expr) x
+  | CtlExprExistsUntil (x,y) ->
+     (Buffer.add_string buffer "A [";
+      add_ctl_expr buffer x;
+      Buffer.add_string buffer " U ";
+      add_ctl_expr buffer y;
+      Buffer.add_char buffer ']')
+  | CtlExprForallUntil (x,y) ->
+     (Buffer.add_string buffer "E [";
+      add_ctl_expr buffer x;
+      Buffer.add_string buffer " U ";
+      add_ctl_expr buffer y;
+      Buffer.add_char buffer ']')
+
+and add_rtctl_spec buffer rtctl_spec =
+  match rtctl_spec with
+  | RtctlCtlSpec expr ->
+     (Buffer.add_string buffer "  CTLSPEC ";
+      add_rtctl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | RtctlSpec expr ->
+     (Buffer.add_string buffer "  SPEC ";
+      add_rtctl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | RtctlCtlSpecName (name,expr) ->
+     (Buffer.add_string buffer "  CTLSPEC NAME ";
+      Buffer.add_string buffer name;
+      Buffer.add_string buffer " := ";
+      add_rtctl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | RtctlSpecName (name,expr) ->
+     (Buffer.add_string buffer "  SPEC NAME ";
+      Buffer.add_string buffer name;
+      Buffer.add_string buffer " := ";
+      add_rtctl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+
+and add_rtctl_expr buffer rtctl_expr =
+  match rtctl_expr with
+  | RtctlCtlExpr expr ->
+     (Buffer.add_char buffer '(';
+      add_ctl_expr buffer expr;
+      Buffer.add_char buffer ')')
+  | RtctlEBF (i,j,expr) ->
+     (Buffer.add_string buffer "EBF ";
+      Buffer.add_string buffer (string_of_int i);
+      Buffer.add_string buffer " .. ";
+      Buffer.add_string buffer (string_of_int j);
+      Buffer.add_char buffer ' ';
+      add_rtctl_expr buffer expr)
+  | RtctlABF (i,j,expr) ->
+     (Buffer.add_string buffer "ABF ";
+      Buffer.add_string buffer (string_of_int i);
+      Buffer.add_string buffer " .. ";
+      Buffer.add_string buffer (string_of_int j);
+      Buffer.add_char buffer ' ';
+      add_rtctl_expr buffer expr)
+  | RtctlEBG (i,j,expr) ->
+     (Buffer.add_string buffer "EBG ";
+      Buffer.add_string buffer (string_of_int i);
+      Buffer.add_string buffer " .. ";
+      Buffer.add_string buffer (string_of_int j);
+      Buffer.add_char buffer ' ';
+      add_rtctl_expr buffer expr)
+  | RtctlABG (i,j,expr) ->
+     (Buffer.add_string buffer "ABG ";
+      Buffer.add_string buffer (string_of_int i);
+      Buffer.add_string buffer " .. ";
+      Buffer.add_string buffer (string_of_int j);
+      Buffer.add_char buffer ' ';
+      add_rtctl_expr buffer expr)
+  | RtctlA (expr1, i, j, expr2) ->
+     (Buffer.add_string buffer "A [";
+      add_rtctl_expr buffer expr1;
+      Buffer.add_string buffer " BU ";
+      Buffer.add_string buffer (string_of_int i);
+      Buffer.add_string buffer " .. ";
+      Buffer.add_string buffer (string_of_int j);
+      Buffer.add_char buffer ' ';
+      add_rtctl_expr buffer expr2;
+      Buffer.add_char buffer ']')
+  | RtctlE (expr1, i, j, expr2) ->
+     (Buffer.add_string buffer "E [";
+      add_rtctl_expr buffer expr1;
+      Buffer.add_string buffer " BU ";
+      Buffer.add_string buffer (string_of_int i);
+      Buffer.add_string buffer " .. ";
+      Buffer.add_string buffer (string_of_int j);
+      Buffer.add_char buffer ' ';
+      add_rtctl_expr buffer expr2;
+      Buffer.add_char buffer ']')
+
+and add_invar_spec buffer invar_spec =
+  match invar_spec with
+  | InvarSpec expr ->
+     (Buffer.add_string buffer "  INVARSPEC ";
+      add_basic_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | InvarSpecName (name, expr) ->
+     (Buffer.add_string buffer "  INVARSPEC NAME ";
+      Buffer.add_string buffer name;
+      Buffer.add_string buffer " := ";
+      add_basic_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+
+and add_ltl_spec buffer ltl_spec =
+  match ltl_spec with
+  | LtlSpec expr ->
+     (Buffer.add_string buffer "  LTLSPEC ";
+      add_ltl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+  | LtlSpecName (name,expr) ->
+     (Buffer.add_string buffer "  LTLSPEC NAME ";
+      Buffer.add_string buffer name;
+      Buffer.add_string buffer " := ";
+      add_ltl_expr buffer expr;
+      Buffer.add_string buffer ";\n")
+
+and add_ltl_unary_op buffer op prio expr =
+  let expr_prio = ltlexpr_priority expr in
+  Buffer.add_string buffer op;
+  if expr_prio > prio then
+    (Buffer.add_char buffer '(';
+     add_ltl_expr buffer expr;
+     Buffer.add_char buffer ')')
+  else
+     add_ltl_expr buffer expr;
+
+and add_ltl_binary_op buffer op prio x y =
+  let left_prio = ltlexpr_priority x in
+  let right_prio = ltlexpr_priority y in
+  if left_prio > prio then
+    (Buffer.add_char buffer '(';
+     add_ltl_expr buffer x;
+     Buffer.add_char buffer ')')
+  else
+     add_ltl_expr buffer x;
+  Buffer.add_char buffer ' ';
+  Buffer.add_string buffer op;
+  Buffer.add_char buffer ' ';
+  if right_prio > prio then
+    (Buffer.add_char buffer '(';
+     add_ltl_expr buffer y;
+     Buffer.add_char buffer ')')
+  else
+     add_ltl_expr buffer y  
+
+and add_ltl_expr buffer expr =
+  match expr with
+  | LtlExprExpr expr ->
+     (Buffer.add_char buffer '(';
+      add_basic_expr buffer expr;
+      Buffer.add_char buffer ')')
+  | LtlExprNot not_expr ->
+     add_ltl_unary_op buffer "!" (ltlexpr_priority expr) not_expr
+  | LtlExprAnd (x,y) ->
+     add_ltl_binary_op buffer "&" (ltlexpr_priority expr) x y
+  | LtlExprOr (x,y) ->
+     add_ltl_binary_op buffer "|" (ltlexpr_priority expr) x y
+  | LtlExprXor (x,y) ->
+     add_ltl_binary_op buffer "xor" (ltlexpr_priority expr) x y
+  | LtlExprXnor (x,y) ->
+     add_ltl_binary_op buffer "xnor" (ltlexpr_priority expr) x y
+  | LtlExprImplies (x,y) ->
+     add_ltl_binary_op buffer "->" (ltlexpr_priority expr) x y
+  | LtlExprEquiv (x,y) ->
+     add_ltl_binary_op buffer "<->" (ltlexpr_priority expr) x y
+  | LtlExprNext x ->
+     add_ltl_unary_op buffer "X" (ltlexpr_priority expr) x
+  | LtlExprGlobal x ->
+     add_ltl_unary_op buffer "G" (ltlexpr_priority expr) x
+  | LtlExprFinally x ->
+     add_ltl_unary_op buffer "F" (ltlexpr_priority expr) x
+  | LtlExprUntil (x, y) ->
+     add_ltl_binary_op buffer "U" (ltlexpr_priority expr) x y
+  | LtlExprReleases (x, y) ->
+     add_ltl_binary_op buffer "R" (ltlexpr_priority expr) x y
+  | LtlExprPrevious x ->
+     add_ltl_unary_op buffer "Y" (ltlexpr_priority expr) x
+  | LtlExprNotPrevious x ->
+     add_ltl_unary_op buffer "Z" (ltlexpr_priority expr) x
+  | LtlExprHistorically x ->
+     add_ltl_unary_op buffer "H" (ltlexpr_priority expr) x
+  | LtlExprOnce x ->
+     add_ltl_unary_op buffer "O" (ltlexpr_priority expr) x
+  | LtlExprSince (x, y) ->
+     add_ltl_binary_op buffer "S" (ltlexpr_priority expr) x y
+  | LtlExprTriggered (x, y) ->
+     add_ltl_binary_op buffer "T" (ltlexpr_priority expr) x y
 
 and add_id buffer id =
   match id with
@@ -167,23 +479,34 @@ and add_binary_func buffer func x y =
   add_basic_expr buffer y;
   Buffer.add_char buffer ')'
 
-and add_unary_op buffer op expr =
+and add_unary_op buffer op prio expr =
+  let expr_prio = expr_priority expr in
   Buffer.add_string buffer op;
-  Buffer.add_char buffer '(';
-  add_basic_expr buffer expr;
-  Buffer.add_char buffer ')'
+  if expr_prio > prio then
+    (Buffer.add_char buffer '(';
+     add_basic_expr buffer expr;
+     Buffer.add_char buffer ')')
+  else
+     add_basic_expr buffer expr;
 
-and add_binary_op buffer op x y =
-  Buffer.add_char buffer '(';
-  add_basic_expr buffer x;
-  Buffer.add_char buffer ')';
+and add_binary_op buffer op prio x y =
+  let left_prio = expr_priority x in
+  let right_prio = expr_priority y in
+  if left_prio > prio then
+    (Buffer.add_char buffer '(';
+     add_basic_expr buffer x;
+     Buffer.add_char buffer ')')
+  else
+     add_basic_expr buffer x;
   Buffer.add_char buffer ' ';
   Buffer.add_string buffer op;
   Buffer.add_char buffer ' ';
-  Buffer.add_char buffer '(';
-  add_basic_expr buffer y;
-  Buffer.add_char buffer ')'
-  
+  if right_prio > prio then
+    (Buffer.add_char buffer '(';
+     add_basic_expr buffer y;
+     Buffer.add_char buffer ')')
+  else
+     add_basic_expr buffer y  
 and add_basic_expr buffer expr =
   match expr with
   | ExprConst const_val -> add_const buffer const_val
@@ -191,27 +514,27 @@ and add_basic_expr buffer expr =
   | ExprAbs expr -> add_unary_func buffer "abs" expr
   | ExprMax (x,y) -> add_binary_func buffer "max" x y
   | ExprMin (x,y) -> add_binary_func buffer "min" x y
-  | ExprNot expr -> add_unary_op buffer "!" expr
-  | ExprAnd (x,y) -> add_binary_op buffer "&" x y
-  | ExprOr (x,y) -> add_binary_op buffer "|" x y
-  | ExprXor (x,y) -> add_binary_op buffer "xor" x y
-  | ExprXnor (x,y) -> add_binary_op buffer "xnor" x y
-  | ExprImplies (x,y) -> add_binary_op buffer "->" x y
-  | ExprEquiv (x,y) -> add_binary_op buffer "<->" x y
-  | ExprEqual (x,y) -> add_binary_op buffer "=" x y
-  | ExprNotEqual (x,y) -> add_binary_op buffer "!=" x y
-  | ExprLess (x,y) -> add_binary_op buffer "<" x y
-  | ExprLessEqual (x,y) -> add_binary_op buffer "<=" x y
-  | ExprGreater (x,y) -> add_binary_op buffer ">" x y
-  | ExprGreaterEqual (x,y) -> add_binary_op buffer ">=" x y
-  | ExprNeg expr -> add_unary_op buffer "-" expr
-  | ExprPlus (x,y) -> add_binary_op buffer "+" x y
-  | ExprMinus (x,y) -> add_binary_op buffer "-" x y
-  | ExprTimes (x,y) -> add_binary_op buffer "*" x y
-  | ExprDiv (x,y) -> add_binary_op buffer "/" x y
-  | ExprMod (x,y) -> add_binary_op buffer "mod" x y
-  | ExprShiftLeft (x,y) -> add_binary_op buffer "<<" x y
-  | ExprShiftRight (x,y) -> add_binary_op buffer ">>" x y
+  | ExprNot not_expr -> add_unary_op buffer "!" (expr_priority expr) not_expr
+  | ExprAnd (x,y) -> add_binary_op buffer "&" (expr_priority expr) x y
+  | ExprOr (x,y) -> add_binary_op buffer "|" (expr_priority expr) x y
+  | ExprXor (x,y) -> add_binary_op buffer "xor" (expr_priority expr) x y
+  | ExprXnor (x,y) -> add_binary_op buffer "xnor" (expr_priority expr) x y
+  | ExprImplies (x,y) -> add_binary_op buffer "->" (expr_priority expr) x y
+  | ExprEquiv (x,y) -> add_binary_op buffer "<->" (expr_priority expr) x y
+  | ExprEqual (x,y) -> add_binary_op buffer "=" (expr_priority expr) x y
+  | ExprNotEqual (x,y) -> add_binary_op buffer "!=" (expr_priority expr) x y
+  | ExprLess (x,y) -> add_binary_op buffer "<" (expr_priority expr) x y
+  | ExprLessEqual (x,y) -> add_binary_op buffer "<=" (expr_priority expr) x y
+  | ExprGreater (x,y) -> add_binary_op buffer ">" (expr_priority expr) x y
+  | ExprGreaterEqual (x,y) -> add_binary_op buffer ">=" (expr_priority expr) x y
+  | ExprNeg neg_expr -> add_unary_op buffer "-" (expr_priority expr) neg_expr
+  | ExprPlus (x,y) -> add_binary_op buffer "+" (expr_priority expr) x y
+  | ExprMinus (x,y) -> add_binary_op buffer "-" (expr_priority expr) x y
+  | ExprTimes (x,y) -> add_binary_op buffer "*" (expr_priority expr) x y
+  | ExprDiv (x,y) -> add_binary_op buffer "/" (expr_priority expr) x y
+  | ExprMod (x,y) -> add_binary_op buffer "mod" (expr_priority expr) x y
+  | ExprShiftLeft (x,y) -> add_binary_op buffer "<<" (expr_priority expr) x y
+  | ExprShiftRight (x,y) -> add_binary_op buffer ">>" (expr_priority expr) x y
   | ExprArrayRef (x,y) ->
      (add_basic_expr buffer x;
       Buffer.add_char buffer '[';
@@ -224,7 +547,7 @@ and add_basic_expr buffer expr =
       Buffer.add_string buffer " : ";
       Buffer.add_string buffer (string_of_int z);
       Buffer.add_char buffer ']')
-  | ExprConcat (x,y) -> add_binary_op buffer "::" x y
+  | ExprConcat (x,y) -> add_binary_op buffer "::" (expr_priority expr) x y
   | ExprWord1 expr -> add_unary_func buffer "word1" expr
   | ExprBool expr -> add_unary_func buffer "bool" expr
   | ExprToInt expr -> add_unary_func buffer "toint" expr
@@ -233,20 +556,38 @@ and add_basic_expr buffer expr =
   | ExprSizeof expr -> add_unary_func buffer "sizeof" expr
   | ExprExtend (x,y) -> add_binary_func buffer "extend" x y
   | ExprResize (x,y) -> add_binary_func buffer "resize" x y
-  | ExprUnion (x,y) -> add_binary_op buffer "union" x y
+  | ExprUnion (x,y) -> add_binary_op buffer "union" (expr_priority expr) x y
   | ExprCount exprs ->
      (Buffer.add_string buffer "count";
       add_bounded_list buffer add_basic_expr ", " "(" ")" exprs)
   | ExprSet exprs ->
      add_bounded_list buffer add_basic_expr ", " "{" "}" exprs
-  | ExprIn (x, y) -> add_binary_op buffer "in" x y
+  | ExprIn (x, y) -> add_binary_op buffer "in" (expr_priority expr) x y
   | ExprTernary (x,y,z) ->
-     (add_basic_expr buffer x;
-      Buffer.add_string buffer " ? (";
-      add_basic_expr buffer y;
-      Buffer.add_string buffer ") : (";
-      add_basic_expr buffer z;
-      Buffer.add_char buffer ')')
+     (let prio = expr_priority (ExprTernary (x,y,z)) in
+      let x_prio = expr_priority x in
+      let y_prio = expr_priority y in
+      let z_prio = expr_priority z in
+      if x_prio > prio then
+        (Buffer.add_char buffer '(';
+         add_basic_expr buffer x;
+         Buffer.add_char buffer ')')
+      else
+         add_basic_expr buffer x;        
+      Buffer.add_string buffer " ? ";
+      if y_prio > prio then
+        (Buffer.add_char buffer '(';
+         add_basic_expr buffer y;
+         Buffer.add_char buffer ')')
+      else
+         add_basic_expr buffer y;        
+      Buffer.add_string buffer " : ";
+      if z_prio > prio then
+        (Buffer.add_char buffer '(';
+         add_basic_expr buffer z;
+         Buffer.add_char buffer ')')
+      else
+         add_basic_expr buffer z)
   | ExprCase cases ->
      (Buffer.add_string buffer "case\n";
       List.iter (add_case buffer) cases;

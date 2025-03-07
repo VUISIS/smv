@@ -148,3 +148,50 @@ type module_type = Module of string * (string list) * (mod_elem_type list)
 
 type program_type = Program of module_type list
 
+let expr_priority = function
+  | ExprNot _ -> 1
+  | ExprNeg _ -> 2
+  | ExprConcat _ -> 3
+  | ExprTimes _ -> 4
+  | ExprDiv _ -> 4
+  | ExprMod _ -> 4
+  | ExprPlus _ -> 5
+  | ExprMinus _ -> 5
+  | ExprShiftLeft _ -> 6
+  | ExprShiftRight _ -> 6
+  | ExprUnion _ -> 7
+  | ExprIn _ -> 8
+  | ExprEqual _ -> 9
+  | ExprNotEqual _ -> 9
+  | ExprLess _ -> 9
+  | ExprLessEqual _ -> 9
+  | ExprGreater _ -> 9
+  | ExprGreaterEqual _ -> 9
+  | ExprAnd _ -> 10
+  | ExprOr _ -> 11
+  | ExprXor _ -> 11
+  | ExprXnor _ -> 11
+  | ExprTernary _ -> 12
+  | ExprEquiv _ -> 13
+  | ExprImplies _ -> 14
+  | _ -> 0
+
+let ctlexpr_priority = function
+  | CtlExprNot _ -> 1
+  | CtlExprAnd _ -> 10
+  | CtlExprOr _ -> 11
+  | CtlExprXor _ -> 11
+  | CtlExprXnor _ -> 11
+  | CtlExprEquiv _ -> 13
+  | CtlExprImplies _ -> 14
+  | _ -> 0
+
+let ltlexpr_priority = function
+  | LtlExprNot _ -> 1
+  | LtlExprAnd _ -> 10
+  | LtlExprOr _ -> 11
+  | LtlExprXor _ -> 11
+  | LtlExprXnor _ -> 11
+  | LtlExprEquiv _ -> 13
+  | LtlExprImplies _ -> 14
+  | _ -> 0
