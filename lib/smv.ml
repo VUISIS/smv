@@ -7,7 +7,7 @@ and simple_type_type = TypeBoolean | TypeWord of int | TypeUnsignedWord of int |
                        TypeArray of int * int * simple_type_type
 and type_type = TypeSimple of simple_type_type | TypeModule of module_type_type
 and enum_val_type = EnumInt of int | EnumSym of string
-and constant_type = ConstBool of bool | ConstInt of int | ConstSym of complex_id_type |
+and constant_type = ConstBool of bool | ConstInt of int |
                     ConstWord of int | ConstRange of int * int
 and complex_id_type = IdSym of string | IdDot of complex_id_type * string
                       | IdRef of complex_id_type * basic_expr_type
@@ -48,6 +48,7 @@ and basic_expr_type = ExprConst of constant_type
                     | ExprToInt of basic_expr_type
                     | ExprSigned of basic_expr_type
                     | ExprUnsigned of basic_expr_type
+                    | ExprSizeof of basic_expr_type
                     | ExprExtend of basic_expr_type * basic_expr_type
                     | ExprResize of basic_expr_type * basic_expr_type
                     | ExprUnion of basic_expr_type * basic_expr_type
@@ -145,3 +146,4 @@ type mod_elem_type = ModVarDecl of var_decl_type list
                    | ModIsaDecl of string
 
 type module_type = Module of string * (string list) * (mod_elem_type list)
+

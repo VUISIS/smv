@@ -8,7 +8,7 @@
 %token NOT_EQUAL EQUAL GREATER_EQUAL GREATER_THAN LESS_EQUAL
 %token LESS_THAN NOT AND OR
 %token TRUE FALSE BOOLEAN DOTDOT SELF
-%token ABS MAX MIN WORD1 BOOL TOINT SIGNED UNSIGNED EXTEND RESIZE UNION
+%token ABS MAX MIN WORD1 BOOL TOINT SIGNED UNSIGNED EXTEND RESIZE UNION SIZEOF
 %token QUESTION IN COUNT WORD PROCESS FROZENVAR CONSTANTS TRANS INVAR
 %token INIT_STMT ISA CTLSPEC SPEC NAME IMPLIES
 %token EQUIV COMPUTE
@@ -17,6 +17,7 @@
 %token EG EX EF AG AX AF E U A X G F V Y Z H O S T
 %token EBF ABF EBG ABG BU
 %token FAIRNESS JUSTICE COMPASSION
+%token EOF
 
 %right IMPLIES
 %left EQUIV
@@ -43,15 +44,11 @@ complex_identifier: SYMBOL { Smv.IdSym $1 }
 
 variable_identifier: complex_identifier { $1};
 
-define_identifier: complex_identifier { $1};
-
 boolean_constant: TRUE { Smv.ConstBool true }
   | FALSE { Smv.ConstBool false }
 ;
 
 integer_constant: INT { Smv.ConstInt $1};
-
-symbolic_constant: complex_identifier { Smv.ConstSym $1};
 
 word_constant: WORD_CONST { Smv.ConstWord $1 };
 
@@ -59,14 +56,12 @@ range_constant: INT DOTDOT INT { Smv.ConstRange ($1, $3) };
 
 constant: boolean_constant {$1}
   | integer_constant {$1}
-  | symbolic_constant {$1}
   | word_constant {$1}
   | range_constant {$1}
 ;
 
 basic_expr: constant {Smv.ExprConst $1}
   | variable_identifier {Smv.ExprVar $1}
-  | define_identifier {Smv.ExprDef $1}
   | LPAREN basic_expr RPAREN {$2}
   | ABS basic_expr {Smv.ExprAbs $2}
   | MAX LPAREN basic_expr COMMA basic_expr RPAREN {Smv.ExprMax ($3, $5) }
@@ -99,6 +94,7 @@ basic_expr: constant {Smv.ExprConst $1}
   | BOOL LPAREN basic_expr RPAREN {Smv.ExprBool $3}
   | TOINT LPAREN basic_expr RPAREN {Smv.ExprToInt $3}
   | SIGNED LPAREN basic_expr RPAREN {Smv.ExprSigned $3}
+  | SIZEOF LPAREN basic_expr RPAREN {Smv.ExprSizeof $3}
   | UNSIGNED LPAREN basic_expr RPAREN {Smv.ExprUnsigned $3}
   | EXTEND LPAREN basic_expr COMMA basic_expr RPAREN {Smv.ExprExtend ($3, $5)}
   | RESIZE LPAREN basic_expr COMMA basic_expr RPAREN {Smv.ExprResize ($3, $5)}
@@ -209,9 +205,9 @@ constants_body: complex_identifier COMMA constants_body {$1 :: $3}
 constants_declaration: CONSTANTS constants_body {Smv.ModConstDecl $2}
 ;
 
-assign: complex_identifier COLON_EQUAL simple_expr {Smv.AssignVar ($1, $3)}
-  | INIT LPAREN complex_identifier RPAREN COLON_EQUAL simple_expr {Smv.AssignInit ($3, $6)}
-  | NEXT LPAREN complex_identifier RPAREN COLON_EQUAL simple_expr {Smv.AssignNext ($3, $6)}
+assign: complex_identifier COLON_EQUAL simple_expr SEMI {Smv.AssignVar ($1, $3)}
+  | INIT LPAREN complex_identifier RPAREN COLON_EQUAL simple_expr SEMI {Smv.AssignInit ($3, $6)}
+  | NEXT LPAREN complex_identifier RPAREN COLON_EQUAL simple_expr SEMI {Smv.AssignNext ($3, $6)}
 ;
 
 assign_list: assign assign_list {$1 :: $2}
@@ -356,6 +352,6 @@ opt_module_body: module_body { $1 }
   | {[]}
 ;
 
-smv_module: MODULE SYMBOL opt_module_parameters opt_module_body {
+smv_module: MODULE SYMBOL opt_module_parameters opt_module_body EOF {
 		   Smv.Module ($2, $3, $4) }
 ;

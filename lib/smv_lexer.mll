@@ -90,6 +90,7 @@ rule token = parse
   | "in" { IN }
   | "count" { COUNT }
   | "process" { PROCESS }
+  | "sizeof" { SIZEOF }
   
   | ['A'-'Z' 'a'-'z' '_' ]['A'-'Z' 'a'-'z' '0'-'9' '_' '$' '#' '-']* as lxm { SYMBOL(lxm) }
   | ":=" { COLON_EQUAL }
@@ -123,4 +124,4 @@ rule token = parse
   | ".." { DOTDOT }
   | '?' { QUESTION }
   | '.' { DOT }
-  
+  | eof { EOF }  
