@@ -15,7 +15,6 @@ and complex_id_type = IdSym of string | IdDot of complex_id_type * string
 and case_type = Case of basic_expr_type * basic_expr_type
 and basic_expr_type = ExprConst of constant_type
                     | ExprVar of complex_id_type
-                    | ExprDef of complex_id_type
                     | ExprAbs of basic_expr_type
                     | ExprMax of basic_expr_type * basic_expr_type
                     | ExprMin of basic_expr_type * basic_expr_type
@@ -146,4 +145,6 @@ type mod_elem_type = ModVarDecl of var_decl_type list
                    | ModIsaDecl of string
 
 type module_type = Module of string * (string list) * (mod_elem_type list)
+
+type program_type = Program of module_type list
 

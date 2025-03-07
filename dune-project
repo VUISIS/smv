@@ -1,6 +1,6 @@
 (lang dune 3.17)
 
-(name smv)
+(name smvlib)
 
 (generate_opam_files true)
 
@@ -18,7 +18,7 @@
 (using menhir 3.0)
 
 (package
- (name smv)
+ (name smvlib)
  (synopsis "SMV AST, parser, and printer")
  (description "A library for parsing, printing, and manipulating SMV files")
  (depends ocaml)

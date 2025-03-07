@@ -33,7 +33,7 @@
 %left COLON_COLON
 %left NOT
 
-%start<Smv.module_type> smv_module
+%start<Smv.program_type> program
 %%
 
 complex_identifier: SYMBOL { Smv.IdSym $1 }
@@ -352,6 +352,12 @@ opt_module_body: module_body { $1 }
   | {[]}
 ;
 
-smv_module: MODULE SYMBOL opt_module_parameters opt_module_body EOF {
+smv_module: MODULE SYMBOL opt_module_parameters opt_module_body {
 		   Smv.Module ($2, $3, $4) }
 ;
+
+module_list: smv_module module_list { $1 :: $2 }
+  | smv_module { [$1] }
+  | { [] }
+
+program: module_list EOF { Smv.Program $1 }

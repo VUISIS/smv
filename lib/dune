@@ -5,4 +5,5 @@
 
 (library
  (name smvlib)
+ (public_name smvlib)
  (libraries str))
