@@ -1,3 +1,5 @@
+(** Parses an SMV file and returns an abstract syntax tree of type
+    Smv.Program *)
 let parse_smv filename =
   In_channel.with_open_text filename
     (fun file ->
@@ -9,6 +11,7 @@ let parse_smv filename =
            (lexbuf.lex_curr_p.pos_cnum - lexbuf.lex_curr_p.pos_bol);
          failwith "parse error"))
 
+(** Writes an Smv.Program structure to the named file *)
 let write_smv filename prog =
   Out_channel.with_open_text filename
     (fun file ->
