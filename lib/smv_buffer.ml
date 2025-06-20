@@ -1,5 +1,18 @@
 open Smv;;
 
+(** This module contains functions to write Smv data types to
+    a buffer. In keeping with the function style of the Buffer
+    module, there are add_xxx functions for the different types.
+
+    To convert a whole program to a string, use string_of_program.
+    To convert a particular data type, use to_string, passing in
+    the add function for the data type you want to convert and
+    the actual value you want to convert.CamlinternalFormat
+
+    For example, to convert a basic_expr_type to a string,
+    call: to_string add_basic_expr expr
+*)
+    
 let rec add_list buffer item_add sep items =
   match items with
   | (a :: b :: rest) -> (item_add buffer a;
@@ -637,11 +650,16 @@ and add_case buffer (Case (match_expr, result_expr)) =
   add_basic_expr buffer result_expr;
   Buffer.add_string buffer ";\n"
 
+(** Converts expr to a string using the buffer writer
+    specified by add_expr (add_expr should be a function
+    that takes a Buffer.t and the type of item you are
+    writing *)
 let to_string add_expr expr =
   let buff = Buffer.create 1024 in
   add_expr buff expr;
   Buffer.contents buff
 
+(** Returns an Smv.Program as a string *)
 let string_of_program prog =
   to_string add_program prog
   
