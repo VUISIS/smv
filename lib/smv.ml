@@ -195,3 +195,28 @@ let ltlexpr_priority = function
   | LtlExprEquiv _ -> 13
   | LtlExprImplies _ -> 14
   | _ -> 0
+
+let rec eval_expr expr =
+  match expr with
+  | ExprConst (ConstInt i) -> Some i
+  | ExprPlus (left, right) ->
+     (match (eval_expr left, eval_expr right) with
+      | (Some i, Some j) -> Some (i+j)
+      | _ -> None)
+  | ExprMinus (left, right) ->
+     (match (eval_expr left, eval_expr right) with
+      | (Some i, Some j) -> Some (i-j)
+      | _ -> None)
+  | ExprTimes (left, right) ->
+     (match (eval_expr left, eval_expr right) with
+      | (Some i, Some j) -> Some (i*j)
+      | _ -> None)
+  | ExprDiv (left, right) ->
+     (match (eval_expr left, eval_expr right) with
+      | (Some i, Some j) -> Some (i/j)
+      | _ -> None)
+  | ExprMod (left, right) ->
+     (match (eval_expr left, eval_expr right) with
+      | (Some i, Some j) -> Some (i mod j)
+      | _ -> None)
+  | _ -> None
